@@ -33,7 +33,7 @@ To use this tool, ensure the following dependencies are installed on your system
 
 1. **Clone the repository**:
    ```bash
-   git clone [https://github.com/MohammadAlkifaee/Android_Penetration_Tool.git]
+   git clone [https://github.com/MohammedAlkifaee/Android_Penetration_Tool.git]
    cd yourrepository
    ```
 
